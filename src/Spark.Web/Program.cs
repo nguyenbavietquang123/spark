@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spark.Web.Data;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Spark.Web;
 
@@ -25,8 +26,7 @@ public class Program
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddEnvironmentVariables()
-            .AddUserSecrets<Startup>()
-            .Build();
+            .AddUserSecrets<Startup>().Build();
 
         using (var scope = host.Services.CreateScope())
         {

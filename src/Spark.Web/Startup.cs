@@ -26,6 +26,11 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication;
+using System.Collections.Generic;
+using System;
 
 namespace Spark.Web;
 
@@ -88,6 +93,36 @@ public class Startup
             .AddRoles<IdentityRole>()
             .AddDefaultUI()
             .AddEntityFrameworkStores<ApplicationDbContext>();
+        // services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        //         .AddJwtBearer(options =>
+        //         {
+        //             options.Authority = "http://localhost:8080/realms/quang-fhir-server";
+        //             options.Audience = "fhir-client";
+        //             options.RequireHttpsMetadata = false;
+        //             options.TokenValidationParameters = new TokenValidationParameters
+        //             {
+        //                 ValidateIssuer = true,
+        //                 ValidateActor = true,
+        //                 ValidateLifetime = true,
+        //                 ValidateIssuerSigningKey = true
+        //             };
+        //         });
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.RequireHttpsMetadata = false;
+            options.Audience = Configuration["Authentication:Audience"];
+            options.MetadataAddress = Configuration["Authentication:MetadataAddress"]!;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = Configuration["Authentication:ValidIssuer"]
+            };
+        });
 
         services.AddAuthorization();
 
@@ -122,9 +157,41 @@ public class Startup
 
         services.AddSwaggerGen(c =>
         {
+            c.CustomSchemaIds(id => id.FullName!.Replace('+', '-'));
+
+            c.AddSecurityDefinition("Keycloak", new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.OAuth2,
+                Flows = new OpenApiOAuthFlows
+                {
+                    Implicit = new OpenApiOAuthFlow
+                    {
+                        AuthorizationUrl = new Uri(Configuration["KeyCloak:AuthorizationUrl"])
+                    }
+                }
+            });
+
+            var securityRequirement = new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Id = "Keycloak",
+                            Type = ReferenceType.SecurityScheme
+                        },
+                        In = ParameterLocation.Header,
+                        Name = "Bearer",
+                        Scheme = "Bearer"
+                    },
+                    []
+                }
+            };
+
+            c.AddSecurityRequirement(securityRequirement);
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "Spark API", Version = "v1" });
         });
-
         services.AddSignalR();
     }
 
@@ -143,16 +210,22 @@ public class Startup
 
         app.UseStaticFiles();
 
-        app.UseSwagger();
+        app.UseSwagger(
+
+        );
         app.UseSwaggerUI(c =>
         {
+
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Spark API");
         });
 
-        app.UseAuthentication();
+
+
         app.UseCors();
 
         app.UseRouting();
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
         {

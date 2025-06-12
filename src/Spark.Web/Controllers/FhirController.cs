@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Hl7.Fhir.Model;
 using Hl7.Fhir.Rest;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ using Spark.Web.Utilities;
 namespace Spark.Web.Controllers;
 
 [Route("fhir"), ApiController, EnableCors]
+[Authorize]
 public class FhirController : ControllerBase
 {
     private readonly IFhirService _fhirService;
@@ -41,14 +43,14 @@ public class FhirController : ControllerBase
     public async Task<ActionResult<FhirResponse>> Read(string type, string id)
     {
         string bearerToken = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-        Console.WriteLine("BearerToken: " +bearerToken);
+        // Console.WriteLine("BearerToken: " +bearerToken);
 
-        if (string.IsNullOrEmpty(bearerToken))
-        {
+        // if (string.IsNullOrEmpty(bearerToken))
+        // {
 
-            Resource errorOperationOutcome = FhirFileImport.ImportData(FhirAuth.getUnauthenticateJson()).First();
-            return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.InternalServerError, errorOperationOutcome));
-        }
+        //     Resource errorOperationOutcome = FhirFileImport.ImportData(FhirAuth.getUnauthenticateJson()).First();
+        //     return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.InternalServerError, errorOperationOutcome));
+        // }
         string authorizeError = FhirAuth.verifyAccessToken(bearerToken);
         if (FhirAuth.verifyAccessToken(bearerToken) != "")
         {
