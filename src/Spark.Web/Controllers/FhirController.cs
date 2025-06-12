@@ -21,6 +21,7 @@ using Spark.Engine;
 using Spark.Engine.Core;
 using Spark.Engine.Extensions;
 using Spark.Engine.Service;
+using Spark.Web.Utilities;
 
 namespace Spark.Web.Controllers;
 
@@ -39,6 +40,21 @@ public class FhirController : ControllerBase
     [HttpGet("{type}/{id}")]
     public async Task<ActionResult<FhirResponse>> Read(string type, string id)
     {
+        string bearerToken = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        Console.WriteLine("BearerToken: " +bearerToken);
+
+        if (string.IsNullOrEmpty(bearerToken))
+        {
+
+            Resource errorOperationOutcome = FhirFileImport.ImportData(FhirAuth.getUnauthenticateJson()).First();
+            return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.InternalServerError, errorOperationOutcome));
+        }
+        string authorizeError = FhirAuth.verifyAccessToken(bearerToken);
+        if (FhirAuth.verifyAccessToken(bearerToken) != "")
+        {
+            Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
+            return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome ));
+        }
         ConditionalHeaderParameters parameters = new ConditionalHeaderParameters(Request);
         Key key = Key.Create(type, id);
         var response = await _fhirService.ReadAsync(key, parameters).ConfigureAwait(false);
