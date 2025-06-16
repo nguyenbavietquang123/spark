@@ -1,9 +1,13 @@
 using Hl7.Fhir.Model;
+using Spark.Web.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 namespace Spark.Web.Utilities;
 
 public class FhirAuth
@@ -34,12 +38,43 @@ public class FhirAuth
     }
 
     //Note: verifyAccessToken will be modified in the future to integrate with identity server.
-    public static string verifyAccessToken(string accessToken)
+    public static string verifyAccessToken(string accessToken, IntrospectSettings settings)
     {
-        if (accessToken != "abc")
+       
+        var client = new HttpClient();
+        client.BaseAddress = new Uri("http://localhost:8080/");
+
+         var formData = new Dictionary<string, string>
+    {
+        { "client_id", settings.ClientId },
+        { "client_secret", settings.ClientSecret },
+        { "token", accessToken }
+    };
+        // Console.WriteLine("Client_ID", settings.ClientId);
+        // Console.WriteLine("client_secret", settings.ClientSecret);
+        // Console.WriteLine("IntrospectEndpoint", settings.IntrospectEndpoint);
+
+    var content = new FormUrlEncodedContent(formData);
+        var response = client.PostAsync(settings.IntrospectEndpoint, content).Result;
+        if (response.IsSuccessStatusCode)
         {
-            return getUnauthorizeJson();
+            var responseContent = response.Content.ReadAsStringAsync().Result;
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var postResponse = System.Text.Json.JsonSerializer.Deserialize<IntrospectRespondData>(responseContent, options);
+            Console.WriteLine("Post successful! ID: " + postResponse.active);
+            return postResponse.active ? "" : getUnauthorizeJson();
+
         }
-        return "";
+        else
+        {
+            return getUnauthenticateJson();
+        }
+
+        
     }
 }

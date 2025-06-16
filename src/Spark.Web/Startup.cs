@@ -31,6 +31,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication;
 using System.Collections.Generic;
 using System;
+using Spark.Web.Models;
 
 namespace Spark.Web;
 
@@ -58,6 +59,11 @@ public class Startup
         SparkSettings sparkSettings = new SparkSettings();
         Configuration.Bind("SparkSettings", sparkSettings);
         services.AddSingleton<SparkSettings>(sparkSettings);
+
+        // IntrospectSettings introspectSettings = new IntrospectSettings();
+        // Configuration.GetSection("Introspection", introspectSettings);
+        // services.AddSingleton<IntrospectSettings>(introspectSettings);
+        services.Configure<IntrospectSettings>(Configuration.GetSection("Introspection"));
 
         StoreSettings storeSettings = new StoreSettings();
         Configuration.Bind("StoreSettings", storeSettings);

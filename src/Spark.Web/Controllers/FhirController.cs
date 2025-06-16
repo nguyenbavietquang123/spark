@@ -18,10 +18,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Spark.Engine;
 using Spark.Engine.Core;
 using Spark.Engine.Extensions;
 using Spark.Engine.Service;
+using Spark.Web.Models;
 using Spark.Web.Utilities;
 
 namespace Spark.Web.Controllers;
@@ -32,11 +34,13 @@ public class FhirController : ControllerBase
 {
     private readonly IFhirService _fhirService;
     private readonly SparkSettings _settings;
+    private readonly IntrospectSettings _introspectSettings;
 
-    public FhirController(IFhirService fhirService, SparkSettings settings)
+    public FhirController(IFhirService fhirService, SparkSettings settings, IOptions<IntrospectSettings> introspectSettings)
     {
         _fhirService = fhirService ?? throw new ArgumentNullException(nameof(fhirService));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _introspectSettings = introspectSettings.Value;
     }
 
     [HttpGet("{type}/{id}")]
@@ -51,8 +55,8 @@ public class FhirController : ControllerBase
         //     Resource errorOperationOutcome = FhirFileImport.ImportData(FhirAuth.getUnauthenticateJson()).First();
         //     return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.InternalServerError, errorOperationOutcome));
         // }
-        string authorizeError = FhirAuth.verifyAccessToken(bearerToken);
-        if (FhirAuth.verifyAccessToken(bearerToken) != "")
+        string authorizeError = FhirAuth.verifyAccessToken(bearerToken,_introspectSettings);
+        if (authorizeError != "")
         {
             Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
             return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome ));
