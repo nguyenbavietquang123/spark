@@ -47,19 +47,17 @@ public class FhirController : ControllerBase
     public async Task<ActionResult<FhirResponse>> Read(string type, string id)
     {
         string bearerToken = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
-        // Console.WriteLine("BearerToken: " +bearerToken);
-
-        // if (string.IsNullOrEmpty(bearerToken))
-        // {
-
-        //     Resource errorOperationOutcome = FhirFileImport.ImportData(FhirAuth.getUnauthenticateJson()).First();
-        //     return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.InternalServerError, errorOperationOutcome));
-        // }
         string authorizeError = FhirAuth.verifyAccessToken(bearerToken,_introspectSettings);
         if (authorizeError != "")
         {
             Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
             return new ActionResult<FhirResponse>(new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome ));
+        }
+        authorizeError = FhirAuth.checkPermission(bearerToken, "fhir-resource-read");
+        if (authorizeError != "")
+        {
+            Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
+            return new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome );
         }
         ConditionalHeaderParameters parameters = new ConditionalHeaderParameters(Request);
         Key key = Key.Create(type, id);
@@ -95,6 +93,19 @@ public class FhirController : ControllerBase
     [HttpPost("{type}")]
     public async Task<FhirResponse> Create(string type, Resource resource)
     {
+        string bearerToken = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+        string authorizeError = FhirAuth.verifyAccessToken(bearerToken,_introspectSettings);
+        if (authorizeError != "")
+        {
+            Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
+            return new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome );
+        }
+        authorizeError = FhirAuth.checkPermission(bearerToken, "fhir-resource-create");
+        if (authorizeError != "")
+        {
+            Resource errorOperationOutcome = FhirFileImport.ImportData(authorizeError).First();
+            return new FhirResponse(HttpStatusCode.Unauthorized, errorOperationOutcome );
+        }
         Key key = Key.Create(type, resource?.Id);
 
         if (Request.Headers.ContainsKey(FhirHttpHeaders.IfNoneExist))

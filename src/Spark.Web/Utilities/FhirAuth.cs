@@ -24,6 +24,18 @@ public class FhirAuth
                 ]
                 }";
     }
+    public static string getNotHavePermission()
+    {
+        return @"{
+                ""resourceType"": ""OperationOutcome"",
+                ""issue"": [
+                    {
+                    ""severity"": ""error"",
+                    ""diagnostics"": ""You do not have permission to access this API""
+                    }
+                ]
+                }";
+    }
     public static string getUnauthenticateJson()
     {
         return @"{
@@ -40,11 +52,11 @@ public class FhirAuth
     //Note: verifyAccessToken will be modified in the future to integrate with identity server.
     public static string verifyAccessToken(string accessToken, IntrospectSettings settings)
     {
-       
+
         var client = new HttpClient();
         client.BaseAddress = new Uri("http://localhost:8080/");
 
-         var formData = new Dictionary<string, string>
+        var formData = new Dictionary<string, string>
     {
         { "client_id", settings.ClientId },
         { "client_secret", settings.ClientSecret },
@@ -54,7 +66,7 @@ public class FhirAuth
         // Console.WriteLine("client_secret", settings.ClientSecret);
         // Console.WriteLine("IntrospectEndpoint", settings.IntrospectEndpoint);
 
-    var content = new FormUrlEncodedContent(formData);
+        var content = new FormUrlEncodedContent(formData);
         var response = client.PostAsync(settings.IntrospectEndpoint, content).Result;
         if (response.IsSuccessStatusCode)
         {
@@ -74,6 +86,17 @@ public class FhirAuth
         {
             return getUnauthenticateJson();
         }
+
+
+    }
+    public static string checkPermission(string accessToken, string permission)
+    {
+        TokenParser parser = new TokenParser(accessToken);
+        if (parser.ClientScope.Contains(permission))
+        {
+            return "";
+        }
+        return getNotHavePermission();
 
         
     }
