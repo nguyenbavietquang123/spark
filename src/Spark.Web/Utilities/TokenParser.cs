@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 namespace Spark.Web.Utilities;
@@ -17,7 +16,6 @@ public class TokenParser
             if (scopeClaim != null)
             {
                 Console.WriteLine("Scope: " + scopeClaim.Value);
-                // If multiple scopes are space-separated, you can split them:
                 var scopes = scopeClaim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 ClientScope = scopes;
             }

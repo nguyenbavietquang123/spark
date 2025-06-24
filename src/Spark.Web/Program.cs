@@ -49,6 +49,14 @@ public class Program
 
     public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
         WebHost.CreateDefaultBuilder(args)
+            .UseKestrel(options =>
+        {
+            options.ConfigureHttpsDefaults(httpsOptions =>
+            {
+                httpsOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12
+                                           | System.Security.Authentication.SslProtocols.Tls13;
+            });
+        })
             .UseStartup<Startup>()
             .ConfigureLogging(logging =>
             {

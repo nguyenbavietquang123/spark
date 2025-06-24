@@ -93,7 +93,7 @@ public class Startup
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlite(Configuration.GetConnectionString("DefaultConnection"))
         );
-
+        
         // Add Identity management
         services.AddIdentity<IdentityUser, IdentityRole>()
             .AddRoles<IdentityRole>()
@@ -172,7 +172,13 @@ public class Startup
                 {
                     Implicit = new OpenApiOAuthFlow
                     {
-                        AuthorizationUrl = new Uri(Configuration["KeyCloak:AuthorizationUrl"])
+                        AuthorizationUrl = new Uri(Configuration["KeyCloak:AuthorizationUrl"]),
+                        Scopes = new Dictionary<string, string>
+                        {
+                            {"openid","openid"},
+                            {"profile","profile"}
+
+                        }
                     }
                 }
             });

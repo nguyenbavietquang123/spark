@@ -78,7 +78,7 @@ public class FhirAuth
             };
 
             var postResponse = System.Text.Json.JsonSerializer.Deserialize<IntrospectRespondData>(responseContent, options);
-            Console.WriteLine("Post successful! ID: " + postResponse.active);
+            //Console.WriteLine("Post successful! ID: " + postResponse.active);
             return postResponse.active ? "" : getUnauthorizeJson();
 
         }
