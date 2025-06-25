@@ -8,8 +8,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 using Hl7.Fhir.Model;
@@ -29,7 +32,7 @@ using Spark.Web.Utilities;
 namespace Spark.Web.Controllers;
 
 [Route("fhir"), ApiController, EnableCors]
-[Authorize]
+//[Authorize]
 public class FhirController : ControllerBase
 {
     private readonly IFhirService _fhirService;
@@ -42,9 +45,9 @@ public class FhirController : ControllerBase
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _introspectSettings = introspectSettings.Value;
     }
-
+    [Authorize]
     [HttpGet("{type}/{id}")]
-    [AuthorizeFhir("fhir-resource-read")]
+    //[AuthorizeFhir("fhir-resource-read")]
     public async Task<ActionResult<FhirResponse>> Read(string type, string id)
     {
         // string bearerToken = Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
@@ -92,7 +95,7 @@ public class FhirController : ControllerBase
     }
 
     [HttpPost("{type}")]
-    [AuthorizeFhir("fhir-resource-create")]
+    //[AuthorizeFhir("fhir-resource-create")]
     public async Task<FhirResponse> Create(string type, Resource resource)
     {
         Key key = Key.Create(type, resource?.Id);
@@ -189,9 +192,24 @@ public class FhirController : ControllerBase
     [HttpGet, Route("metadata")]
     public async Task<FhirResponse> Metadata()
     {
-        return await _fhirService.CapabilityStatementAsync(_settings.Version).ConfigureAwait(false);
+        string json = System.IO.File.ReadAllText("Controllers/metadata.json");
+        var jsonObject = JsonSerializer.Deserialize<object>(json);
+        string compactJson = JsonSerializer.Serialize(jsonObject);
+        Resource metadata = FhirFileImport.ImportData(compactJson).First();
+        return new FhirResponse(HttpStatusCode.OK, metadata);
     }
+    [HttpGet, Route(".well-known/smart-configuration")]
+    public async Task<IActionResult> Smart()
+    {
+        string json = System.IO.File.ReadAllText("Controllers/smart.json");
+        return new ContentResult
+        {
+            Content = json,
+            ContentType = "application/json",
+            StatusCode = (int)HttpStatusCode.OK
+        };
 
+    }
     [HttpOptions, Route("")]
     public async Task<FhirResponse> Options()
     {
@@ -265,4 +283,52 @@ public class FhirController : ControllerBase
         Key key = Key.Create("Composition", id);
         return await _fhirService.DocumentAsync(key).ConfigureAwait(false);
     }
+    [HttpPost, Route("proxy/token")]
+    [Consumes("application/x-www-form-urlencoded")]
+    public async Task<IActionResult> ProxyToken([FromForm] Dictionary<string, string> formData)
+    {
+        Console.WriteLine("=== Incoming formData ===");
+    foreach (var kvp in formData)
+    {
+        Console.WriteLine($"{kvp.Key} = {kvp.Value}");
+    }
+        var client = new HttpClient();
+        Console.WriteLine("Line 292");
+        client.BaseAddress = new Uri("http://192.168.56.1:8080/");
+        Request.Headers.TryGetValue("Authorization", out var authHeader);
+        string authorizationHeaderValue = authHeader.ToString();
+        Console.WriteLine(authorizationHeaderValue);
+        var content = new FormUrlEncodedContent(formData);
+        client.DefaultRequestHeaders.Authorization =  new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authorizationHeaderValue.Split(" ").Last());
+        var response = client.PostAsync("realms/quang-fhir-server/protocol/openid-connect/token", content).Result;
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Line 298");
+           return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync()); 
+        }
+            
+        Console.WriteLine("Line 311");
+        var json = await response.Content.ReadAsStringAsync();
+        var tokenData = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+
+        if (tokenData != null && tokenData.TryGetValue("access_token", out var accessTokenObj))
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(accessTokenObj.ToString());
+
+            var patientClaim = jwt.Claims.FirstOrDefault(c => c.Type == "patient");
+            if (patientClaim != null)
+            {
+                tokenData["patient"] = patientClaim.Value;
+            }
+        }
+
+                return new JsonResult(tokenData)
+            {
+                StatusCode = 200,
+                ContentType = "application/json"
+            };
+    }
+
 }
