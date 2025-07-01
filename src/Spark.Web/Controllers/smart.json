@@ -507,7 +507,7 @@
     "user/Location.rs",
     "system/Location.rs"
   ],
-  "issuer": "http://192.168.56.1:8080/realms/quang-fhir-server",
-  "authorization_endpoint": "http://192.168.56.1:8080/realms/quang-fhir-server/protocol/openid-connect/auth",
-  "token_endpoint": "http://192.168.56.1:5000/fhir/proxy/token"
+  "issuer": "http://localhost:8080/realms/quang-fhir-server",
+  "authorization_endpoint": "http://localhost:3000/consent",
+  "token_endpoint": "http://localhost:5000/fhir/proxy/token"
 }

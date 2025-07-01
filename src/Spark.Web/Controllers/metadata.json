@@ -22,19 +22,19 @@
                         "extension": [
                             {
                                 "url": "token",
-                                "valueUri": "http://192.168.56.1:5000/fhir/proxy/token"
+                                "valueUri": "http://localhost:5000/fhir/proxy/token"
                             },
                             {
                                 "url": "authorize",
-                                "valueUri": "http://192.168.56.1:8080/realms/quang-fhir-server/protocol/openid-connect/auth"
+                                "valueUri": "http://localhost:3000/consent"
                             },
                             {
                                 "url": "revoke",
-                                "valueUri": "http://192.168.56.1:8080/realms/quang-fhir-server/protocol/openid-connect/revoke"
+                                "valueUri": "http://localhost:8080/realms/quang-fhir-server/protocol/openid-connect/revoke"
                             },
                             {
                                 "url": "introspect",
-                                "valueUri": "http://192.168.56.1:8080/realms/quang-fhir-server/protocol/openid-connect/token/introspect"
+                                "valueUri": "http://localhost:8080/realms/quang-fhir-server/protocol/openid-connect/token/introspect"
                             }
                         ]
                     }

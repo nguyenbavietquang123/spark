@@ -2,12 +2,16 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 namespace Spark.Web.Utilities;
+
 public class TokenParser
 {
     public string[] ClientScope;
+    public string scopeLevel = "";
+
+    public string listPatientId = "";
     public TokenParser(string token)
     {
-       var handler = new JwtSecurityTokenHandler();
+        var handler = new JwtSecurityTokenHandler();
 
         if (handler.CanReadToken(token))
         {
@@ -23,11 +27,19 @@ public class TokenParser
             {
                 ClientScope = [];
             }
+            var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "role");
+            if (roleClaim != null) scopeLevel = roleClaim.Value;
+            else scopeLevel = "system";
+            var patientClaims = jwtToken.Claims
+                .Where(c => c.Type == "patient")
+                .Select(c => c.Value)
+                .ToList();
+            if (patientClaims != null) listPatientId = string.Join(",",patientClaims);
         }
         else
         {
             ClientScope = [];
-        } 
+        }
     }
-    
+
 }

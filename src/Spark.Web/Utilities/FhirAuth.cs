@@ -36,6 +36,18 @@ public class FhirAuth
                 ]
                 }";
     }
+    public static string getNotHavePermissionToAccessResource()
+    {
+        return @"{
+                ""resourceType"": ""OperationOutcome"",
+                ""issue"": [
+                    {
+                    ""severity"": ""error"",
+                    ""diagnostics"": ""You do not have permission to access this resource""
+                    }
+                ]
+                }";
+    }
     public static string getUnauthenticateJson()
     {
         return @"{
